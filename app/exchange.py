@@ -32,7 +32,14 @@ class ExchangeInterface():
         # Loads the exchanges using ccxt.
         for exchange in exchange_config:
             if exchange_config[exchange]['required']['enabled']:
-                parameters = {'enableRateLimit': True}
+                parameters = {
+                    'enableRateLimit': True,
+                    # located in China, you need to set up the proxy
+                    # 'proxies': {
+                    #     'http': '<YOUR_OWN_PROXY_URL>',
+                    #     'https': '<YOUR_OWN_PROXY_URL>',
+                    # }
+                }
                 if 'future' in exchange_config[exchange].keys():
                     if exchange_config[exchange]['future'] == True:
                         parameters['options'] = {'defaultType': 'future'}

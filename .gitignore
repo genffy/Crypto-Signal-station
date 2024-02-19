@@ -6,3 +6,6 @@ config.yml
 lib/ta-lib/
 app/charts
 app/user_data
+
+# system
+.DS_Store

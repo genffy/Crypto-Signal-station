@@ -175,7 +175,7 @@ class Notifier(IndicatorUtils):
                         if not isinstance(_messages[candle_period], list) or len(
                                 _messages[candle_period]) == 0:
                             continue
-
+                        # TODO why candle_period is `ema0` ?
                         self.notify_all_messages(
                             exchange, market_pair, candle_period, _messages[candle_period])
                         sleep(4)
@@ -250,9 +250,10 @@ class Notifier(IndicatorUtils):
         if self.enable_charts:
             try:
                 candles_data = self.all_historical_data[exchange][market_pair][candle_period]
+                # TODO add variable to file name
                 chart_file = self.create_chart(
                     exchange, market_pair, candle_period, candles_data)
-                # self.logger.info('Chart file %s', chart_file)
+                self.logger.info('Chart file %s', chart_file)
             except Exception as e:
                 self.logger.info('Error creating chart for %s %s',
                                  market_pair, candle_period)
@@ -741,7 +742,8 @@ class Notifier(IndicatorUtils):
                                     if len(base_currency) == 2:
                                         base_currency, quote_currency = base_currency
                                     precision = self.market_data[exchange][market_pair]['precision']
-                                    decimal_format = '.{}f'.format(
+                                    # TODO temporary fix for ValueError: Invalid format specifier '.0.01f' for object of type 'float'
+                                    decimal_format = '{}f'.format(
                                         precision['price'])
 
                                     prices = ''
@@ -753,7 +755,7 @@ class Notifier(IndicatorUtils):
                                         for key, value in candle_values[candle_period].items(
                                         ):
                                             price_value[key] = value
-
+                                            # TODO fix ValueError: Invalid format specifier '.0.01f' for object of type 'float'
                                             value = format(
                                                 value, decimal_format)
                                             prices = '{} {}: {}'.format(

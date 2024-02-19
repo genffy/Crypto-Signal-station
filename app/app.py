@@ -1,15 +1,13 @@
-#!/usr/local/bin/python
-"""Main app module
+"""
+Main app module
 """
 
-import concurrent.futures
 import sys
 import time
 from threading import Thread
 
 import structlog
 
-import conf
 import logs
 from behaviour import Behaviour
 from conf import Configuration
@@ -18,7 +16,8 @@ from notification import Notifier
 
 
 def main():
-    """Initializes the application
+    """
+    Initializes the application
     """
     # Load settings and create the config object
     config = Configuration()
@@ -54,9 +53,9 @@ def main():
                 config.notifiers, config.indicators, config.conditionals, market_data_chunk)
             behaviour = Behaviour(config, exchange_interface, notifier)
 
-            workerName = "Worker-{}".format(num)
+            worker_name = "Worker-{}".format(num)
             worker = AnalysisWorker(
-                workerName, behaviour, notifier, market_data_chunk, settings, logger)
+                worker_name, behaviour, notifier, market_data_chunk, settings, logger)
             thread_list.append(worker)
             worker.daemon = True
             worker.start()
@@ -85,11 +84,11 @@ def chunks(l, n):
 
 class AnalysisWorker(Thread):
 
-    def __init__(self, threadName, behaviour, notifier,
+    def __init__(self, thread_name, behaviour, notifier,
                  market_data, settings, logger):
         Thread.__init__(self)
 
-        self.threadName = threadName
+        self.threadName = thread_name
         self.behaviour = behaviour
         self.notifier = notifier
         self.market_data = market_data

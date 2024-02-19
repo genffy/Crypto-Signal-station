@@ -1,8 +1,9 @@
-"""Notify a user via discord
+"""
+Notify a user via discord
 """
 
 import structlog
-from discord_webhook import DiscordWebhook as Webhook
+from discord_webhook import DiscordWebhook
 
 from notifiers.utils import NotifierUtils
 
@@ -23,7 +24,7 @@ class DiscordNotifier(NotifierUtils):
         """
         self.logger = structlog.get_logger()
         self.discord_username = username
-        self.discord_client = Webhook(
+        self.discord_client = DiscordWebhook(
             url=webhook, username=username, avatar_url=avatar, rate_limit_retry=True)
 
     def notify(self, message: str):

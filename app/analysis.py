@@ -13,7 +13,7 @@ from analyzers.indicators import *
 from analyzers.informants import *
 
 
-class StrategyAnalyzer():
+class StrategyAnalyzer:
     """Contains all the methods required for analyzing strategies.
     """
 

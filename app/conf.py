@@ -12,14 +12,18 @@ class Configuration():
     """
 
     def __init__(self):
-        """Initializes the Configuration class
         """
+        Initializes the Configuration class
+        """
+        dirname = os.path.dirname(__file__) or '.'
+        defaults_path = os.path.join(dirname, 'defaults.yml')
+        config_path = os.path.join(dirname, 'config.yml')
 
-        with open('defaults.yml', 'r') as config_file:
+        with open(defaults_path, 'r') as config_file:
             default_config = yaml.load(config_file, Loader=yaml.FullLoader)
 
-        if os.path.isfile('config.yml'):
-            with open('config.yml', 'r') as config_file:
+        if os.path.isfile(config_path):
+            with open(config_path, 'r') as config_file:
                 user_config = yaml.load(config_file, Loader=yaml.FullLoader)
         else:
             user_config = dict()
