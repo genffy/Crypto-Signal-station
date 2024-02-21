@@ -1,6 +1,7 @@
 """Interface for performing queries against exchange API's
 """
 
+import os
 import re
 import sys
 import time
@@ -11,6 +12,8 @@ import numpy as np
 import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
+from bpx.bpx import *
+from bpx.bpx_pub import *
 
 class ExchangeInterface():
     """Interface for performing queries against exchange API's
@@ -239,3 +242,182 @@ class ExchangeInterface():
             time.sleep(self.exchanges[exchange].rateLimit / 1000)
 
         return exchange_markets
+
+class BackpackExchangeAdapter(ExchangeInterface):
+    def __init__(self, exchange_config):
+        # super().__init__(exchange_config)
+        self.logger = structlog.get_logger()
+        self.exchanges = dict()
+        self.base_markets = dict()
+        self.top_pairs = None
+        self.exclude = []
+        # Loads the exchanges using ccxt.
+        for exchange in exchange_config:
+            # Loads the exchanges using backpack.
+            if exchange == 'bpx':
+                # 读取环境变量
+                api_secret = os.getenv('API_SECRET')
+                api_key = os.getenv('API_KEY')
+                bpx = BpxClient()
+                bpx.init(        
+                    api_key=api_key,
+                    api_secret=api_secret,
+                )
+                self.exchanges['bpx'] = 'bpx'
+                self.base_markets['bpx'] = list()
+
+                continue
+
+    @retry(retry=retry_if_exception_type(ccxt.NetworkError),
+           stop=stop_after_attempt(3))
+    def get_historical_data(self, market_pair, exchange, time_unit, start_date=None, max_periods=240):
+        # use backpack kline api instead
+        # [
+        #     {
+        #         "close": "58.770000000",
+        #         "end": "1700332500000",
+        #         "high": "58.770000000",
+        #         "low": "58.770000000",
+        #         "open": "58.770000000",
+        #         "start": "2023-11-18 18:30:00",
+        #         "trades": "2",
+        #         "volume": "0.380000000"
+        #     },
+        # ]
+        # ts	String	Opening time of the candlestick, Unix timestamp format in milliseconds, e.g. 1597026383085
+        # o	String	Open price
+        # h	String	highest price
+        # l	String	Lowest price
+        # c	String	Close price
+        # confirm	String	The state of candlesticks.
+        # 0 represents that it is uncompleted, 1 represents that it is completed.
+        # [1708480200000, 107.28, 107.43, 107.28, 107.43, 12.516208]
+        # try:
+        #     if time_unit not in self.exchanges[exchange].timeframes:
+        #         raise ValueError(
+        #             "{} does not support {} timeframe for OHLCV data. Possible values are: {}".format(
+        #                 exchange,
+        #                 time_unit,
+        #                 list(self.exchanges[exchange].timeframes)
+        #             )
+        #         )
+        # except AttributeError:
+        #     self.logger.error(
+        #         '%s interface does not support timeframe queries! We are unable to fetch data!',
+        #         exchange
+        #     )
+        #     raise AttributeError(sys.exc_info())
+
+        if not start_date:
+            timeframe_regex = re.compile('([0-9]+)([a-zA-Z])')
+            timeframe_matches = timeframe_regex.match(time_unit)
+            time_quantity = timeframe_matches.group(1)
+            time_period = timeframe_matches.group(2)
+
+            timedelta_values = {
+                'm': 'minutes',
+                'h': 'hours',
+                'd': 'days',
+                'w': 'weeks',
+                'M': 'months',
+                'y': 'years'
+            }
+
+            timedelta_args = {
+                timedelta_values[time_period]: int(time_quantity)}
+
+            start_date_delta = timedelta(**timedelta_args)
+
+            max_days_date = datetime.now() - (max_periods * start_date_delta)
+            start_date = int(max_days_date.replace(
+                tzinfo=timezone.utc).timestamp() * 1000)
+
+        # historical_data = self.exchanges[exchange].fetch_ohlcv(
+        #     market_pair,
+        #     timeframe=time_unit,
+        #     since=start_date
+        # )
+        # hard code latest 7 days
+        start_date = int(time.time()) - 7 * 24 * 60 * 60
+        end_time = int(time.time())
+        historical_data = KLines(market_pair, '5m', start_date, end_time)
+
+        if not historical_data:
+            raise ValueError(
+                'No historical data provided returned by exchange.')
+        # convert to ccxt format
+        new_historical_data = []
+        for d in historical_data:
+            # TODO change ent to start
+            new_historical_data.append([d['end'], d['open'], d['high'], d['low'], d['close'], d['volume']])
+        # Sort by timestamp in ascending order
+        new_historical_data.sort(key=lambda d: d[0])
+
+        # time.sleep(self.exchanges[exchange].rateLimit / 1000)
+        return new_historical_data
+    @retry(retry=retry_if_exception_type(ccxt.NetworkError),
+           stop=stop_after_attempt(3))
+    
+    def get_exchange_markets(self, exchanges=[], markets=[]):
+        if not exchanges:
+            exchanges = self.exchanges
+
+        exchange_markets = dict()
+        for exchange in exchanges:
+            # template
+            # {
+            #     "obk": {
+            #         'BTC/USDT': {
+            #             "precision": {
+            #                 "amount": 1e-06,
+            #                 "price": 0.01,
+            #                 "cost": None,
+            #                 "base": None,
+            #                 "quote": None,
+            #             },
+            #         }
+            #     }
+            # }
+            # TODO use backpack api to get top markets
+            # exchange_markets[exchange] = self.exchanges[exchange].load_markets()
+            # {
+            #     "baseSymbol": "SOL",
+            #     "filters": {
+            #         "leverage": null,
+            #         "price": {
+            #             "maxPrice": null,
+            #             "minPrice": "0.01",
+            #             "tickSize": "0.01"
+            #         },
+            #         "quantity": {
+            #             "maxQuantity": null,
+            #             "minQuantity": "0.01",
+            #             "stepSize": "0.01"
+            #         }
+            #     },
+            #     "quoteSymbol": "USDC",
+            #     "symbol": "SOL_USDC"
+            # },
+            all_markets = Markets()
+            markets = dict()
+            for market in all_markets:
+                markets[market['symbol']] = {
+                    "precision": {
+                        "amount": 1e-06, # hard code
+                        "price": market['filters']['price']['minPrice'],
+                        "cost": None,
+                        "base": None,
+                        "quote": None,
+                    }
+                }
+            exchange_markets[exchange] = markets
+           
+            # time.sleep(self.exchanges[exchange].rateLimit / 1000)
+        print(exchange_markets)
+        
+        return exchange_markets
+    
+    @retry(retry=retry_if_exception_type(ccxt.NetworkError),
+           stop=stop_after_attempt(3))
+    def get_top_markets(self, exchanges=[], markets=[]):
+        return super().get_top_markets(exchanges, markets)   

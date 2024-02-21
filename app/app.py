@@ -5,13 +5,14 @@ Main app module
 import sys
 import time
 from threading import Thread
+from dotenv import load_dotenv
 
 import structlog
 
 import logs
 from behaviour import Behaviour
 from conf import Configuration
-from exchange import ExchangeInterface
+from exchange import ExchangeInterface, BackpackExchangeAdapter
 from notification import Notifier
 
 
@@ -19,6 +20,7 @@ def main():
     """
     Initializes the application
     """
+    load_dotenv()
     # Load settings and create the config object
     config = Configuration()
     settings = config.settings
@@ -28,7 +30,8 @@ def main():
     logger = structlog.get_logger()
 
     # Configure and run configured behaviour.
-    exchange_interface = ExchangeInterface(config.exchanges)
+    # exchange_interface = ExchangeInterface(config.exchanges)
+    exchange_interface = BackpackExchangeAdapter(config.exchanges)
 
     if settings['market_pairs']:
         market_pairs = settings['market_pairs']
