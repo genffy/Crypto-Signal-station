@@ -12,7 +12,7 @@ import structlog
 import logs
 from behaviour import Behaviour
 from conf import Configuration
-from exchange import ExchangeInterface, BackpackExchangeAdapter
+from exchange import BackpackExchangeAdapter
 from notification import Notifier
 
 
@@ -30,7 +30,6 @@ def main():
     logger = structlog.get_logger()
 
     # Configure and run configured behaviour.
-    # exchange_interface = ExchangeInterface(config.exchanges)
     exchange_interface = BackpackExchangeAdapter(config.exchanges)
 
     if settings['market_pairs']:

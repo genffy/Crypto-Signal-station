@@ -352,7 +352,7 @@ class Behaviour():
                                                ][crossover_conf['key_indicator']][crossover_conf['key_indicator_index']]
                     crossed_indicator = new_result[crossover_conf['crossed_indicator_type']
                                                    ][crossover_conf['crossed_indicator']][crossover_conf['crossed_indicator_index']]
-
+                    # TODO: what is the `ema0` means ?
                     crossover_conf['candle_period'] = crossover_conf['key_indicator'] + \
                         str(crossover_conf['key_indicator_index'])
 

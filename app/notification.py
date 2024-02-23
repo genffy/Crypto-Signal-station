@@ -250,7 +250,10 @@ class Notifier(IndicatorUtils):
         if self.enable_charts:
             try:
                 candles_data = self.all_historical_data[exchange][market_pair][candle_period]
-                # TODO add variable to file name
+                if not candles_data:
+                    self.logger.info('No data for %s %s %s', exchange, market_pair, candle_period)
+                    return
+
                 chart_file = self.create_chart(
                     exchange, market_pair, candle_period, candles_data)
                 self.logger.info('Chart file %s', chart_file)
@@ -260,11 +263,11 @@ class Notifier(IndicatorUtils):
                 self.logger.exception(e)
 
         # self.notify_slack(new_analysis)
-        self.notify_discord(messages, chart_file)
-        self.notify_webhook(messages, chart_file)
+        # self.notify_discord(messages, chart_file)
+        # self.notify_webhook(messages, chart_file)
         # self.notify_twilio(new_analysis)
-        self.notify_email(messages)
-        asyncio.run(self.notify_telegram(messages, chart_file))
+        # self.notify_email(messages)
+        # asyncio.run(self.notify_telegram(messages, chart_file))
         self.notify_stdout(messages)
 
     def notify_discord(self, messages, chart_file):
@@ -737,7 +740,8 @@ class Notifier(IndicatorUtils):
                                     should_alert = False
 
                                 if should_alert:
-                                    base_currency = market_pair.split('/')
+                                    # market_painr is SOL_USDC or SOL/USDC
+                                    base_currency = market_pair.replace('_', '/').split('/')
                                     quote_currency = ''
                                     if len(base_currency) == 2:
                                         base_currency, quote_currency = base_currency
@@ -786,7 +790,7 @@ class Notifier(IndicatorUtils):
                                         analysis=analysis, status=status, last_status=last_status,
                                         prices=prices, lrsi=lrsi, creation_date=creation_date, hot_cold_label=hot_cold_label,
                                         indicator_label=indicator_label, price_value=price_value, decimal_format=decimal_format)
-
+                                    print('get_indicator_messages', candle_period)
                                     new_messages[exchange][market_pair][candle_period].append(
                                         new_message)
 
@@ -895,8 +899,8 @@ class Notifier(IndicatorUtils):
         fig.suptitle(title, fontsize=14)
 
         market_pair = market_pair.replace('/', '_').lower()
-        chart_file = '{}/{}_{}_{}.png'.format('./charts',
-                                              exchange, market_pair, candle_period)
+        chart_file = '{}/{}_{}_{}_{}.png'.format('./charts',
+                                              exchange, market_pair, candle_period, now.strftime("%Y-%m-%d-%H-%M-%S"))
 
         plt.savefig(chart_file)
         plt.close(fig)
